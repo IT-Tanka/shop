@@ -76,6 +76,8 @@ body {
   font-family: var(--font-primary--family);
   background-color: var(--color-background);
   color: var(--color-foreground);
+  min-height: 100vh;
+  
 }
 
 /** Section layout utilities */

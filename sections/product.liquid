@@ -1,50 +1,164 @@
 {% comment %}
-  This section is used in the product template to render product page with
-  media, content, and add-to-cart form.
-
-  https://shopify.dev/docs/storefronts/themes/architecture/templates/product
+  Test task: Product page with gallery, filtering, and schema
 {% endcomment %}
 
-<div class="product-images">
-  {% for image in product.images %}
-    {% render 'image', class: 'product-image', image: image %}
-  {% endfor %}
+<!-- Connecting Swiper styles -->
+{{ 'swiper.min.css' | asset_url | stylesheet_tag }}
+{{ 'product.css' | asset_url | stylesheet_tag }}
+
+<div
+  class="product-section"
+  data-slides-per-view-mobile="{{ section.settings.slides_per_view_mobile }}"
+  data-slides-per-view-tablet="{{ section.settings.slides_per_view_tablet }}"
+  data-slides-per-view-desktop="{{ section.settings.slides_per_view_desktop }}"
+  data-space-between="{{ section.settings.space_between }}"
+  data-show-pagination="{{ section.settings.show_pagination }}"
+  data-show-arrows="{{ section.settings.show_arrows }}"
+  data-product-title="{{ product.title | escape }}"
+>
+  <div class="product-container">
+    <!-- Swiper gallery (left) -->
+    <div class="swiper-gallery">
+      <div class="swiper">
+        <div class="swiper-wrapper">
+          {% for media in product.media %}
+            {% if media.media_type == 'image' %}
+              <div
+                class="swiper-slide"
+                data-color="{{ media.alt | downcase }}"
+              >
+                <img
+                  src="{{ media | image_url: width: 1000 }}"
+                  alt="{{ media.alt }}"
+                  width="500"   
+                  height="500"  
+                  loading="lazy"  
+                >
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        {% if section.settings.show_arrows %}
+          <div class="swiper-button-prev"></div>
+          <div class="swiper-button-next"></div>
+        {% endif %}
+
+        {% if section.settings.show_pagination %}
+          <div class="swiper-pagination"></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Product information and form (right) -->
+    <div class="product-details">
+      <!-- Product information -->
+      <div class="product-info">
+        <h1>{{ product.title }}</h1>
+        <p class="product-price">{{ product.price | money }}</p>
+        <p>{{ product.description }}</p>
+      </div>
+
+      <!-- Accordion -->
+      {% assign accordion_blocks = product.metafields.custom.accordion_blocks.value %}
+      {% if accordion_blocks %}
+        <div class="accordion" data-multiple="{{ section.settings.accordion_multiple }}">
+          {% for block in accordion_blocks %}
+            {% if block.content != blank %}
+              <div class="accordion-item">
+                <button class="accordion-header"><span>{{ block.title }}</span><span class="arrow-span">▼</span></button>
+                <div class="accordion-body"><p>{{ block.content }}</p></div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Variant selector and form -->
+      <div class="product-form">
+        {% form 'product', product %}
+          {% assign current_variant = product.selected_or_first_available_variant %}
+          <select name="id" id="variant-select">
+            {% for variant in product.variants %}
+              <option
+                value="{{ variant.id }}"
+                data-color="{{ variant.option1 | downcase }}"
+                {% if variant == current_variant %}
+                  selected
+                {% endif %}
+              >
+                {{ variant.title }} - {{ variant.price | money }}
+              </option>
+            {% endfor %}
+          </select>
+          <input type="text" name="quantity" min="1" value="1">
+          <input type="submit" value="Add to cart">
+          {{ form | payment_button }}
+        {% endform %}
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="product-info">
-  <h1>{{ product.title }}</h1>
-  <p>{{ product.price | money }}</p>
-  <p>{{ product.description }}</p>
-</div>
-
-<div class="product-form">
-  {% form 'product', product %}
-    {% assign current_variant = product.selected_or_first_available_variant %}
-
-    <select name="id">
-      {% for variant in product.variants %}
-        <option
-          value="{{ variant.id }}"
-          {% if variant == current_variant %}
-            selected="selected"
-          {% endif %}
-        >
-          {{ variant.title }} - {{ variant.price | money }}
-        </option>
-      {% endfor %}
-    </select>
-
-    <input type="text" name="quantity" min="1" value="1">
-
-    <input type="submit" value="Add to cart">
-    {{ form | payment_button }}
-  {% endform %}
-</div>
+<!-- Connecting Swiper and custom script with async -->
+<script src="{{ 'swiper.min.js' | asset_url }}" async></script>
+<script src="{{ 'product.js' | asset_url }}" async></script>
 
 {% schema %}
 {
-  "name": "t:general.product",
-  "settings": [],
+  "name": "Product with Swiper",
+  "settings": [
+    {
+      "type": "range",
+      "id": "slides_per_view_mobile",
+      "label": "Slides on mobile",
+      "min": 1,
+      "max": 5,
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "slides_per_view_tablet",
+      "label": "Slides on tablets",
+      "min": 1,
+      "max": 5,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "slides_per_view_desktop",
+      "label": "Slides on desktop",
+      "min": 1,
+      "max": 5,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "space_between",
+      "label": "Space between slides (px)",
+      "min": 0,
+      "max": 50,
+      "default": 10
+    },
+    {
+      "type": "checkbox",
+      "id": "show_pagination",
+      "label": "Show pagination",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows",
+      "label": "Show arrows",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "accordion_multiple",
+      "label": "Allow opening multiple accordion items",
+      "default": false
+    }
+  ],
   "disabled_on": {
     "groups": ["header", "footer"]
   }
